@@ -1,4 +1,5 @@
 import pathlib
+
 from setuptools import setup, find_packages
 
 version = {}
@@ -13,8 +14,8 @@ setup(
         'tests',
     ]),
     install_requires=[
-        'numpy==1.15.0',
-        'pandas==0.23.3'
+        'numpy==1.16.0',
+        'pandas==0.24.1'
     ],
     extras_require={
         'tests': [
