@@ -5,8 +5,8 @@ import os
 import sys
 from typing import List
 
-import numpy as np
 import pandas as pd
+import numpy as np
 from pandas.errors import MergeError
 
 logger = logging.getLogger()
@@ -26,13 +26,13 @@ class InputFile:
         self.clean_up_from_previous_comparison()
 
     def output_files(self):
-        output_file = []
-        output_file.append(f"keys_only_in_{self.type}_file.csv")
-        output_file.append("duplicated_keys_in_{self.type}_file.csv")
+        output_file = dict()
+        output_file["extra_keys"] = f"keys_only_in_{self.type}_file.csv"
+        output_file["duplicated_keys"] = f"duplicated_keys_in_{self.type}_file.csv"
         return output_file
 
     def clean_up_from_previous_comparison(self):
-        for output_file in self.output_files():
+        for _, output_file in self.output_files().items():
             file_path = os.path.join(self.output_directory, output_file)
             if os.path.exists(file_path):
                 os.remove(file_path)
@@ -124,19 +124,24 @@ def csv_compare(args):
     if target_df.equals(source_df):
         logging.info("Files are exactly similar. No output files generated.")
     else:
-        discrepancies_df, header_list, output_list, res_list = find_discrepancies(
-            args, key_list, source_df, target_df
+        discrepancies_df = find_discrepancies(
+            args.comparison_method, key_list, source_df, target_df
         )
 
-        extract_unmatched_keys(discrepancies_df, output_list, source_file, "right_only")
-        extract_unmatched_keys(discrepancies_df, output_list, target_file, "left_only")
+        extract_unmatched_keys(discrepancies_df, source_file.output_files(), "right_only")
+        extract_unmatched_keys(discrepancies_df, target_file.output_files(), "left_only")
 
         logging.info("Extract data different between the 2 files")
-        discrepancies_df = extract_file_diff(discrepancies_df, res_list, header_list)
+        header_list = [x for x in list(target_df) if x not in key_list]
+        discrepancies_df, discrepancies_list = extract_file_discrepancies(discrepancies_df, header_list)
 
         logging.debug("Output")
+
+        output_list = key_list + [col for x in discrepancies_list for col in _get_comparison_columns(x) if x not in key_list]
+
         if not discrepancies_df.empty:
-            discrepancies_df[output_list].dropna(axis=1, how="all").to_csv(
+            logging.info(f"{discrepancies_df.shape[0]} rows with discrepancies")
+            discrepancies_df[output_list].to_csv(
                 diff_result_file, sep=";", index=False
             )
 
@@ -145,23 +150,18 @@ def csv_compare(args):
     logging.info(f"Elapsed Time: {end_time - start_time}")
 
 
-def find_discrepancies(args, key_list, source_df, target_df):
+def find_discrepancies(comparison_method, key_list, source_df, target_df):
     logging.info("Discrepancies found between the two files.")
-    header_list = [x for x in list(target_df) if x not in key_list]
-    res_list = []
-    for item in header_list:
-        res_list.extend([item + "_source", item + "_target", item + "_compare"])
-    output_list = key_list + res_list
     logging.debug("Merge")
     try:
 
         discrepancies_df = source_df.merge(
             target_df,
             how="outer",
-            on=args.key_list,
+            on=key_list,
             suffixes=["_source", "_target"],
             indicator=True,
-            validate=args.comparison_method,
+            validate=comparison_method,
         )
     except MergeError:
         extract_duplicated_keys(
@@ -172,10 +172,8 @@ def find_discrepancies(args, key_list, source_df, target_df):
         )
         sys.exit(-1)
 
-    logging.debug(
-        [x for x in discrepancies_df["_merge"].value_counts().to_string().split("\n")]
-    )
-    return discrepancies_df, header_list, output_list, res_list
+    logging.debug(discrepancies_df["_merge"].value_counts().to_string())
+    return discrepancies_df
 
 
 def keep_common_columns(source_df, target_df):
@@ -194,13 +192,13 @@ def keep_common_columns(source_df, target_df):
     )
 
 
-def extract_unmatched_keys(df, output_list, output_file, merging_indicator):
+def extract_unmatched_keys(df, output_file, merging_indicator):
     logging.info("Extract data only in the file")
     df_source = df[(df["_merge"] == merging_indicator)]
     if not df_source.empty:
-        df_source[[x for x in output_list if "_compare" not in x]].dropna(
+        df_source.dropna(
             axis=1, how="all"
-        ).to_csv(output_file, sep=";", index=False)
+        ).to_csv(output_file["extra_keys"], sep=";", index=False)
 
 
 def extract_duplicated_keys(key_list: List[str], df: pd.DataFrame, output_file: str):
@@ -212,25 +210,26 @@ def extract_duplicated_keys(key_list: List[str], df: pd.DataFrame, output_file: 
         )
 
 
-def extract_file_diff(df3, res_list, header_list):
+def extract_file_discrepancies(df3, header_list):
     df3 = df3[(df3["_merge"] == "both")]
     logging.debug("Drop Column")
     df3.drop("_merge", axis="columns", inplace=True)
 
     logging.debug("Compare")
+
+    discrepancies_list = []
+
     for item in header_list:
         col_source, col_target, col_compare = _get_comparison_columns(item)
-        df3[col_compare] = np.where(df3[col_source] == df3[col_target], "equal", "diff")
+        df3[col_compare] = df3[col_source] == df3[col_target]
+        if df3[col_compare].all():
+            df3.drop(columns=[col_source, col_target, col_compare], inplace=True)
+        else:
+            discrepancies_list.append(item)
+            df3.loc[df3[col_compare], [col_source, col_target]] = np.nan
+            df3[col_compare].replace([True, False], [np.nan, "diff"], inplace=True)
     logging.debug("Clean")
-    for item in header_list:
-        col_source, col_target, col_compare = _get_comparison_columns(item)
-        mask = df3[col_compare] == "equal"
-        df3.loc[mask, col_source] = np.nan
-        df3.loc[mask, col_target] = np.nan
-        df3.loc[mask, col_compare] = np.nan
-    logging.debug("Remove similar deals")
-    df3.dropna(subset=res_list, how="all", inplace=True)
-    return df3
+    return df3, discrepancies_list
 
 
 def _get_comparison_columns(item: str):
