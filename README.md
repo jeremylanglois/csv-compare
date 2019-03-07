@@ -15,8 +15,6 @@ Table of Contents
 Definition
 ----------
 
-An [OpenAPI 2.0](https://www.openapis.org) JSON definition is available at /swagger.json
-
 
 Usage
 -----
@@ -25,8 +23,8 @@ Usage
 
 | ParametersEnvironment   | Service Definition                                         | Swagger UI |
 |:--------------|:-----------------------------------------------------------|:----------------------------------------------|
-| `SourceFile`  | <http://guru.gem.myengie.com/python_service_name/swagger.json>      | [Production](http://guru.gem.myengie.com/python_service_name)   |
-| `TargetFile`  | <http://10.22.218.199/python_service_name-acceptance/swagger.json>  | [Acceptance](http://10.22.218.199/python_service_name-acceptance)   |
+| `SourceFile`  |    |
+| `TargetFile`  |    |
 
 ### Options ###
 
@@ -55,32 +53,3 @@ To integrate it within Pycharm: https://black.readthedocs.io/en/stable/editor_in
 
 To add the pre-commit hook, after the installation run: **pre-commit install**
 
-Support-And-Migration
----------------------
-
-### Infrastructure ###
-
-Service is hosted on Azure using [this infrastrure](https://wiki.gem.myengie.com/display/ETRM/Azure+infrastructure%3A+InfrastructureAsCode+and+Continuous+Deployment) (DockerFile of this project can be consulted for details on this specific service).
-
-### Information Security ###
-
-#### Confidentiality ####
-
-TODO: Fill this section
-
-#### Integrity ####
-
-TODO: Fill this section
-
-License
--------
-
-Copyright 2018 Engie
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-[More information](https://opensource.org/licenses/MIT)
