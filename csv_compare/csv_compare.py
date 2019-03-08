@@ -5,8 +5,8 @@ import os
 import sys
 from typing import List
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 from pandas.errors import MergeError
 
 logger = logging.getLogger()
@@ -19,11 +19,17 @@ DISCREPANCIES_OUTPUT_FILE = "discrepancies_results.csv"
 
 
 class InputFile:
-    def __init__(self, type, output_directory, input_file):
-        self.type = type
-        self.output_directory = output_directory
+    def __init__(self, file_type, output_directory, input_file):
+        self.type = file_type
+        self.output_directory = self._create_directory_if_missing(output_directory)
         self.input_file = input_file
         self.clean_up_from_previous_comparison()
+
+    @staticmethod
+    def _create_directory_if_missing(output_directory):
+        if not os.path.exists(output_directory):
+            os.mkdir(output_directory)
+        return output_directory
 
     def output_files(self):
         output_file = dict()
@@ -131,13 +137,13 @@ def csv_compare(args):
         extract_unmatched_keys(discrepancies_df, source_file.output_files(), "right_only")
         extract_unmatched_keys(discrepancies_df, target_file.output_files(), "left_only")
 
-        logging.info("Extract data different between the 2 files")
         header_list = [x for x in list(target_df) if x not in key_list]
         discrepancies_df, discrepancies_list = extract_file_discrepancies(discrepancies_df, header_list)
 
         logging.debug("Output")
 
-        output_list = key_list + [col for x in discrepancies_list for col in _get_comparison_columns(x) if x not in key_list]
+        output_list = key_list + [col for x in discrepancies_list for col in _get_comparison_columns(x) if
+                                  x not in key_list]
 
         if not discrepancies_df.empty:
             logging.info(f"{discrepancies_df.shape[0]} rows with discrepancies")
@@ -211,11 +217,10 @@ def extract_duplicated_keys(key_list: List[str], df: pd.DataFrame, output_file: 
 
 
 def extract_file_discrepancies(df3, header_list):
-    df3 = df3[(df3["_merge"] == "both")]
-    logging.debug("Drop Column")
-    df3.drop("_merge", axis="columns", inplace=True)
+    logging.info("Extract discrepancies between the 2 files")
 
-    logging.debug("Compare")
+    df3 = df3[(df3["_merge"] == "both")]
+    df3.drop("_merge", axis="columns", inplace=True)
 
     discrepancies_list = []
 
@@ -228,7 +233,6 @@ def extract_file_discrepancies(df3, header_list):
             discrepancies_list.append(item)
             df3.loc[df3[col_compare], [col_source, col_target]] = np.nan
             df3[col_compare].replace([True, False], [np.nan, "diff"], inplace=True)
-    logging.debug("Clean")
     return df3, discrepancies_list
 
 
@@ -248,7 +252,7 @@ def get_args():
     parser.add_argument(
         "-o",
         "--output_directory",
-        default=os.path.dirname(os.path.realpath(__file__)),
+        default=os.path.join(os.path.dirname(os.path.realpath(__file__)), "results"),
         help="Directory where the output of the comparison should be stored.",
     )
     parser.add_argument(
