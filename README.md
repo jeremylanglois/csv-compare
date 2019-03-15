@@ -12,19 +12,15 @@ Table of Contents
   * [Usage](#usage)
   * [Technical documentation](#technical)
 
-Definition
-----------
-
-
 Usage
 -----
 
 ### Parameters ###
 
-| ParametersEnvironment   | Service Definition                                         | Swagger UI |
-|:--------------|:-----------------------------------------------------------|:----------------------------------------------|
-| `SourceFile`  |    |
-| `TargetFile`  |    |
+| Name          | Description |
+|:--------------|:------------|
+| `SourceFile`  | Original file.   |
+| `TargetFile`  | Destination file   |
 
 ### Options ###
 
